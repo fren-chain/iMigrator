@@ -179,14 +179,16 @@ export const get_iVault_byIndex = async (provider, index, account, network) => {
 };
 
 export const migrate_v1_to_v2 = async (provider, account, amount, network) => {
-    let result_migrations;
     try {
         let web3 = new Web3(provider);
         console.log("migrate: ", account, amount, network);
         let contract_Migrator = new web3.eth.Contract(migratorABI, iMigratorAddress[network], account);
-        result_migrations = await contract_Migrator.methods["migrate"](amount).send({ from: account });
-        console.log("result_migrations: ", result_migrations);
-        return result_migrations.toString();
+        let result_migrations = await contract_Migrator.methods["migrate"](amount).send({ from: account });
+        if(result_migrations["transactionHash"]) {            
+            window.alert("Processed! TXID: ",result_migrations["transactionHash"]);
+            console.log("result_migrations: ", result_migrations);
+            return result_migrations;
+        };
     } catch (e) {
         console.log("yo: ", e);
     };
@@ -339,7 +341,7 @@ export const _toBN = async (provider, int) => {
 
 export const approve_iMigrator = async (provider, token, account, migrateAmount, network) => {
     let result;
-    console.log("approve: ", lockAmount, iMigratorAddress[network]);
+    console.log("approve: ", migrateAmount, iMigratorAddress[network]);
     try {
         let web3 = new Web3(provider);
         let contract = new web3.eth.Contract(erc20Abi, token); 

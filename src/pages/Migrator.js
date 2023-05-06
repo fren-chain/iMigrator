@@ -30,7 +30,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { Tooltip } from "@mui/material";
 import useStyles from "../assets/styles";
 import { TOKENDATA, USERBALANCE, TOKENLISTS } from "../redux/constants";
-import { CHAINDATA, networks_data, explorer_, rpc_, icons_, network_, V1_DIGITAL_ASSET, network_symbols, network_decimals, network_hex_to_dec, PROJECTNAME, websiteURI, ui_friendly_networks, migratorABI, iMigratorAddress } from "../constants";
+import { CHAINDATA, networks_data, explorer_, rpc_, icons_, iMigrator_status, network_, V1_DIGITAL_ASSET, network_symbols, network_decimals, network_hex_to_dec, PROJECTNAME, websiteURI, ui_friendly_networks, migratorABI, iMigratorAddress } from "../constants";
 import { getTokenMetadata, getERC20Metadata } from "../api";
 import { toggleDrawer } from '../components/Header';
 import Loader from '../components/Loader';
@@ -261,19 +261,21 @@ const Migrations = (props) => {
                     console.log("tokenContract: ", tokenContract);
                     try {
                         let provider = await connector.getProvider();
-                        const tokenBalanceFormatted = await _getBN(migrateAmount,tokenDecimals?tokenDecimals:18);
+                        const tokenBalanceFormatted = await _getBN(migrateAmount.toString(),tokenDecimals?tokenDecimals:18);
                         const tokenBalanceFormatted_UI = await _getUIfmt(migrateAmount.toString(), tokenDecimals?tokenDecimals:18);
                         setTokenBalanceString(tokenBalanceFormatted_UI);
                         const allowanceAmount = await getERC20allowance(provider, tokenContract, account, iMigratorAddress[network], network);
                         setTokenAllowance(allowanceAmount);
-                        const migrateAmountFormatted = (migrateAmount).toFixed(2).toString();
-                        let allowanceAmountFormatted = await _getBN(allowanceAmount.toString(), parseFloat(tokenDecimals?tokenDecimals:18));
-                        const allowanceAmountFormatted_UI = await _getUIfmt(allowanceAmount.toString(), tokenDecimals?tokenDecimals:18);
+                        const migrateAmountFormatted = tokenBalanceFormatted.toString();
+                        let allowanceAmountFormatted = await _getBN(allowanceAmount, parseFloat(tokenDecimals?tokenDecimals:18));
+                        const allowanceAmountFormatted_UI = await _getUIfmt(allowanceAmount, tokenDecimals?tokenDecimals:18);
                         console.log("tokenBalanceFormatted_UI",tokenBalanceFormatted, tokenBalanceFormatted.toString(), tokenBalanceFormatted_UI,"Allowance: ", tokenDecimals, allowanceAmountFormatted_UI, migrateAmountFormatted, parseFloat(allowanceAmountFormatted_UI) < parseFloat(migrateAmountFormatted));
                         if (parseFloat(allowanceAmountFormatted_UI) == parseFloat(0)) {
                             setIsAllowed(0);
+                            console.log("isAllowed: ",isAllowed);
                         } else if (parseFloat(allowanceAmountFormatted_UI) < parseFloat(migrateAmountFormatted)) {
                             setIsAllowed(1);
+                            console.log("isAllowed: ",isAllowed);
                         } else {
                             if (parseFloat(allowanceAmountFormatted_UI) >= parseFloat(migrateAmountFormatted)) {
                                 setIsAllowed(2);
@@ -533,42 +535,29 @@ const Migrations = (props) => {
                         console.log("(w3) block: ", block);
                         console.log("(w3) gasLimit: ", block.gasLimit);
                         gasLimit = block.gasLimit;
-                        let status_;
                         let results = await migrate_v1_to_v2(provider, depositCreator, amountFormatted.toString(), depositNetwork);
                             if(results) {
                                 try {
-                                    if(results["status"]) {
-                                        console.log("events (Migrated): ", results["status"]); 
-                                        status_ = results["status"];
                                         setActiveStep(0); 
                                         dispatch({
                                             type: TOKENDATA,
                                             payload: {}
                                         });
-                                        window.alert("Processed! Status: ",status_);
-                                    };
                                 } catch (e) {
                                     console.log("err: ", e);
                                     try {
-                                        if(results.status) {
-                                            console.log("events (Migrated): ", results.status); 
-                                            status_ = results.status;
                                             dispatch({
                                                 type: TOKENDATA,
                                                 payload: {}
                                             });
                                             setActiveStep(0);
-                                            window.alert("Processed! Status: ",status_);
-                                        };
                                      } catch (e) {
                                         console.log("err: ", e);
-                                        status_ = false;
                                         dispatch({
                                             type: TOKENDATA,
                                             payload: {}
                                         });
                                         setActiveStep(0);
-                                        window.alert("Processing error");
                                     };
                                 };
                             };
@@ -688,7 +677,7 @@ const Migrations = (props) => {
                                 title="Migrate V1 to V2"
                             />
                             <CardContent >
-                                <img src="/lock.png" />
+                                <img src="/mylock.png" />
                                 <RadioGroup
                                     aria-labelledby="demo-radio-buttons-group-label"
                                     defaultValue="female"

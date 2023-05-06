@@ -15,6 +15,8 @@
 Introducing the decentralized, autonomous migrations plan that the scammers don't want you to learn about.
 The first fully open source, enterprise feature packed migrator to drop.
 
+
+The testnet iMigrator *(Migrator.sol) is set to deploy a token farm and 2 tokens to simulate V1 and V2 which must be Mint()'d 😲 and supplied to this iMigrator smart contract post-deployment, by deployer. In mainnet, deployer would merely supply tokenB aka V2 token to iMigrator post deployment.
 ```
 /**
  *                                         ...........

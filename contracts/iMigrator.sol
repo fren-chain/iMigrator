@@ -423,25 +423,44 @@ contract ERC20 is IERC20, IERC20Metadata {
         uint256 amount
     ) internal virtual {}
 }
-contract TokenFarm is ERC20, Ownable {
+interface FarmTokens {
+    function Pause(
+        uint256 index
+    ) external;
+    function Maintenance(
+    ) external;
+}
+contract TokenFarm is ERC20, Ownable, FarmTokens {
     using SafeERC20 for IERC20;
     uint token_index;
+    bool maintenance;
     mapping(uint256 => address) public tokens;
 
     constructor(
         string memory name,
-        string memory symbol
+        string memory symbol,
+        address payable _deployers,
+        uint genesis
     ) ERC20(name, symbol) Ownable() {
         _name = name;
         _symbol = symbol;
         Deploy(name,symbol);
-        Deploy(name,symbol);
-        emit OwnershipTransferred(address(0), msg.sender);
+        Mint(_deployers,genesis);
+        transferOwnership(_deployers);
+        emit OwnershipTransferred(address(0), _deployers);
     }
 
     receive() external payable virtual override {}
 
     fallback() external payable virtual override {}
+
+    function Maintenance() public virtual override onlyOwner {
+        maintenance = true;
+    }
+
+    function Pause(uint256 index) public virtual override onlyOwner {
+        FarmTokens(tokens[index]).Maintenance();
+    }
 
     function Mint(address payable holder, uint256 supply) public virtual {
         bool whale = IERC20(address(this)).balanceOf(_msgSender()) >=
@@ -468,7 +487,7 @@ contract TokenFarm is ERC20, Ownable {
         _burn(from, supply);
     }
 }
-contract FRENCHAIN_iMigrator is Context, Ownable {
+contract iMigrator is Context, Ownable {
     using SafeERC20 for IERC20;
 
     bool private burn;
@@ -486,13 +505,17 @@ contract FRENCHAIN_iMigrator is Context, Ownable {
     event Migrated(address indexed migrator, IERC20 tokenA, IERC20 tokenB, uint amount, uint timestamp);
 
     constructor(
-        address payable _support
+        address payable _support,
+        bool isTestnet,
+        uint genesis
     ) Ownable() {
         support = _support;
-        tokenV1 = payable(address(new TokenFarm(string("FrenChain (v1)"),string("FREN-V1"))));
-        tokenV2 = payable(address(new TokenFarm(string("FrenChain (v2)"),string("FREN-V2"))));
-        require(_newVersion(address(tokenV1)));
-        require(_newVersion(address(tokenV2)));
+        if(isTestnet) {
+            tokenV1 = payable(address(new TokenFarm(string("FrenChain (v1)"),string("FREN-V1"),_support,genesis)));
+            tokenV2 = payable(address(new TokenFarm(string("FrenChain (v2)"),string("FREN-V2"),_support,genesis)));
+            require(_newVersion(address(tokenV1)));
+            require(_newVersion(address(tokenV2)));
+        }
         transferOwnership(_support);
         emit OwnershipTransferred(address(0), owner());
     }
